@@ -9,8 +9,8 @@ export class PricesController {
   constructor(private pricesService: PricesService) {}
 
   @Get('/ethereum')
-  getEthereumPrices():string {
-    return this.pricesService.getEthereumPrices();
+  getEthereumPrices() {
+    return this.pricesService.getEthereumPrice();
   }
 }
 
