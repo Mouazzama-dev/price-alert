@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { PricesService } from './prices.service';
+import { SwapRateDto } from './swap-rate.dto';
 
 // @Controller('prices')
 // export class PricesController {}
@@ -23,6 +24,14 @@ export class PricesController {
   @Get('/polygon')
   async getPolygonPrice(): Promise<string> {
     return this.pricesService.getPolygonPrices();
+  }
+
+  @Post('/swap-rate')
+  async getSwapRate(@Body() swapRateDto: SwapRateDto): Promise<string> {
+    if (!swapRateDto.amount || swapRateDto.amount <= 0) {
+      return 'Invalid amount provided. Amount must be greater than zero.';
+    }
+    return this.pricesService.getSwapRate(swapRateDto.amount);
   }
 
 }

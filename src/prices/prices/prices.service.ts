@@ -150,6 +150,31 @@ export class PricesService {
     }
   }
 
+  async getSwapRate(amount: number): Promise<string> {
+    const feePercentage = 0.03;  // 3% fee
+    try {
+      // Fetching current prices of Ethereum and Bitcoin in USD
+      const url = 'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin&vs_currencies=usd';
+      const response = await lastValueFrom(this.httpService.get(url));
+      const ethPriceUSD = response.data.ethereum.usd;
+      const btcPriceUSD = response.data.bitcoin.usd;
+
+      // Calculate how much BTC can be bought with the specified amount of ETH
+      const ethTotal = amount * ethPriceUSD;
+      const equivalentBTC = ethTotal / btcPriceUSD;
+
+      // Calculate fees in ETH and USD
+      const feeInUSD = ethTotal * feePercentage;
+      const feeInETH = feeInUSD / ethPriceUSD;
+
+      return `With ${amount} ETH, you can get approximately ${equivalentBTC.toFixed(8)} BTC. Total Fee: ${feeInETH.toFixed(8)} ETH (${feeInUSD.toFixed(2)} USD).`;
+    } catch (error) {
+      this.logger.error('Failed to fetch cryptocurrency prices', error.stack);
+      return 'Failed to fetch swap rate';
+    }
+  }
+
+
   
 }
 
