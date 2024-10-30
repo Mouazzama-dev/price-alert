@@ -20,6 +20,7 @@ export class PricesService {
   private latestPrice: { timestamp: string; price: number } | null = null;
   private previousPrice: { timestamp: string; price: number } | null = null;
   private priceAlerts: PriceAlert[] = [];
+  private priceHistory: { timestamp: string; price: number }[] = [];
 
   constructor(
     private httpService: HttpService,
@@ -58,6 +59,12 @@ export class PricesService {
 
         this.previousPrice = this.latestPrice;
         this.latestPrice = { timestamp, price: currentPrice };
+
+        // Maintain price history for the last 24 hours
+        this.priceHistory.push(this.latestPrice);
+        if (this.priceHistory.length > 24) {
+          this.priceHistory.shift();
+        }
 
         this.logger.log(`Updated Ethereum price: 1 ETH = ${currentPrice} USD`);
         this.writePriceToFile(this.latestPrice);
@@ -118,11 +125,31 @@ export class PricesService {
     this.logger.log(`Added price alert for ${chain} at ${price} USD to be sent to ${email}`);
   }
 
-  getEthereumPrice(): string {
-    if (this.latestPrice) {
-      return `${this.latestPrice.timestamp} 1 ETH = ${this.latestPrice.price} USD`;
-    } else {
-      return 'Price information not available';
+  async getEthereumPrices(): Promise<string> {
+    // Fetching data for the last 2 days to ensure hourly data without specifying 'interval'
+    const url = 'https://api.coingecko.com/api/v3/coins/ethereum/market_chart?vs_currency=usd&days=2';
+    try {
+      const response = await lastValueFrom(this.httpService.get(url));
+      const priceData = response.data.prices;  // This will be an array of [timestamp, price] arrays
+      const last24HoursPrices = priceData.slice(-24); // Assuming the data contains more than 24 entries
+      return last24HoursPrices.map(price => `Time: ${new Date(price[0]).toLocaleString()}, Price: ${price[1]} USD`).join('\n');
+    } catch (error) {
+      return 'Failed to fetch Ethereum prices';
     }
   }
+
+  async getPolygonPrices(): Promise<string> {
+    const url = 'https://api.coingecko.com/api/v3/coins/matic-network/market_chart?vs_currency=usd&days=2';
+    try {
+      const response = await lastValueFrom(this.httpService.get(url));
+      const priceData = response.data.prices;  // This is an array of [timestamp, price] arrays
+      const last24HoursPrices = priceData.slice(-24);  // Get the last 24 entries
+      return last24HoursPrices.map(price => `Time: ${new Date(price[0]).toLocaleString()}, Price: ${price[1]} USD`).join('\n');
+    } catch (error) {
+      return 'Failed to fetch Polygon prices';
+    }
+  }
+
+  
 }
+

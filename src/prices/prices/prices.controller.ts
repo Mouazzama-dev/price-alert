@@ -17,7 +17,13 @@ export class PricesController {
 
   @Get('/ethereum')
   getEthereumPrices() {
-    return this.pricesService.getEthereumPrice();
+    return this.pricesService.getEthereumPrices();
   }
+
+  @Get('/polygon')
+  async getPolygonPrice(): Promise<string> {
+    return this.pricesService.getPolygonPrices();
+  }
+
 }
 
