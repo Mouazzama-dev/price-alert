@@ -7,6 +7,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestFactory } from '@nestjs/core';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CryptoPrice } from './crypto-price.entity';
+import { Repository } from 'typeorm';
+
 interface PriceAlert {
   chain: string;
   price: number;
@@ -24,10 +28,13 @@ export class PricesService {
 
   constructor(
     private httpService: HttpService,
-    private mailerService: MailerService
+    private mailerService: MailerService,
+    @InjectRepository(CryptoPrice)
+    private cryptoPriceRepository: Repository<CryptoPrice>,
   ) {
     this.initLogFile();
     this.handleCron(); // Trigger an initial fetch immediately when the service is instantiated.
+    this.handleCron2();
   }
 
   private initLogFile() {
@@ -37,6 +44,12 @@ export class PricesService {
       fs.mkdirSync(dir, { recursive: true });
     }
     this.logger.log(`Log file initialized at: ${this.logFilePath}`);
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handleCron2() {
+    await this.fetchAndSavePrice('ethereum', 'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    await this.fetchAndSavePrice('matic-network', 'https://api.coingecko.com/api/v3/simple/price?ids=matic-network&vs_currencies=usd');
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -174,7 +187,30 @@ export class PricesService {
     }
   }
 
+  private async fetchAndSavePrice(chain: string, url: string) {
+    try {
+      const response = await lastValueFrom(this.httpService.get(url));
+      if (response.data[chain] && response.data[chain].usd) {
+        const currentPrice = response.data[chain].usd;
+        const timestamp = new Date();
+        
+        // Log the price to the console
+        this.logger.log(`Fetched ${chain} price: 1 ${chain.toUpperCase()} = ${currentPrice} USD at ${timestamp}`);
 
+        // Create and save the price entity
+        const price = this.cryptoPriceRepository.create({
+          chain,
+          price: currentPrice,
+          timestamp
+        });
+        await this.cryptoPriceRepository.save(price);
+      } else {
+        this.logger.error(`${chain} data not found in response`, JSON.stringify(response.data));
+      }
+    } catch (error) {
+      this.logger.error(`Failed to fetch ${chain} prices`, error.stack);
+    }
+  }
   
 }
 
