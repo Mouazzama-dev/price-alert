@@ -21,7 +21,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
         from: '"No Reply" <no-reply@example.com>', // Replace with a default sender address
       },
     }),
-    ,ScheduleModule.forRoot(), 
+    ScheduleModule.forRoot(), 
     HttpModule
   ],
   controllers: [PricesController],
