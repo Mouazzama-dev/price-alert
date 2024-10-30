@@ -1,10 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Controller, Post, Body, Get } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { lastValueFrom } from 'rxjs';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestFactory } from '@nestjs/core';
+interface PriceAlert {
+  chain: string;
+  price: number;
+  email: string;
+}
 
 @Injectable()
 export class PricesService {
@@ -12,6 +19,7 @@ export class PricesService {
   private readonly logFilePath = path.resolve(__dirname, 'price.log');
   private latestPrice: { timestamp: string; price: number } | null = null;
   private previousPrice: { timestamp: string; price: number } | null = null;
+  private priceAlerts: PriceAlert[] = [];
 
   constructor(
     private httpService: HttpService,
@@ -45,6 +53,8 @@ export class PricesService {
             this.sendEmailNotification({ timestamp, price: currentPrice });
           }
         }
+
+        this.checkPriceAlerts(currentPrice);
 
         this.previousPrice = this.latestPrice;
         this.latestPrice = { timestamp, price: currentPrice };
@@ -80,6 +90,32 @@ export class PricesService {
     } catch (error) {
       this.logger.error(`Failed to send price notification email: ${error.message}`);
     }
+  }
+
+  async sendPriceAlertEmail(alert: PriceAlert, price: number) {
+    try {
+      await this.mailerService.sendMail({
+        to: alert.email,
+        subject: `${alert.chain} Price Alert`,
+        text: `The price of ${alert.chain} has reached your target of ${alert.price} USD. Current price: ${price} USD.`,
+      });
+      this.logger.log(`Price alert email sent to ${alert.email} for ${alert.chain} at price ${price} USD`);
+    } catch (error) {
+      this.logger.error(`Failed to send price alert email: ${error.message}`);
+    }
+  }
+
+  checkPriceAlerts(currentPrice: number) {
+    for (const alert of this.priceAlerts) {
+      if (alert.chain === 'ethereum' && currentPrice >= alert.price) {
+        this.sendPriceAlertEmail(alert, currentPrice);
+      }
+    }
+  }
+
+  addPriceAlert(chain: string, price: number, email: string) {
+    this.priceAlerts.push({ chain, price, email });
+    this.logger.log(`Added price alert for ${chain} at ${price} USD to be sent to ${email}`);
   }
 
   getEthereumPrice(): string {
