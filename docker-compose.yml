@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_HOST: localhost  # Use the service name as the host
+      DATABASE_USER: root
+      DATABASE_PASSWORD: abcd@1234
+      DATABASE_NAME: token_prices
+      DATABASE_PORT: 1433  # Ensure this matches SQL Server's port in the Docker container
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: "abcd@1234"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+
+volumes:
+  db_data:

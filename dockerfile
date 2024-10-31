@@ -1,23 +1,21 @@
 # Use the official Node.js 16 image.
-# https://hub.docker.com/_/node
-FROM node:16
+FROM node:18
 
 # Create and change to the app directory.
 WORKDIR /usr/src/app
 
 # Copy application dependency manifests to the container image.
-# A wildcard is used to ensure both package.json AND package-lock.json are copied.
-# Copying this separately prevents re-running npm install on every code change.
 COPY package*.json ./
 
-# Install production dependencies.
+# Install production dependencies and Nest CLI globally.
 RUN npm install --only=production
+RUN npm install -g @nestjs/cli
 
 # Copy local code to the container image.
 COPY . .
 
-# Build the application
+# Build the application using the globally installed Nest CLI
 RUN npm run build
 
 # Run the web service on container startup.
-CMD [ "npm", "run" , "start:dev" ]
+CMD [ "node", "dist/main" ]

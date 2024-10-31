@@ -80,7 +80,7 @@ export class PricesService {
         }
 
         this.logger.log(`Updated Ethereum price: 1 ETH = ${currentPrice} USD`);
-        this.writePriceToFile(this.latestPrice);
+        // this.writePriceToFile(this.latestPrice);
       } else {
         this.logger.error('Ethereum data not found in response', JSON.stringify(response.data));
       }
@@ -89,15 +89,15 @@ export class PricesService {
     }
   }
 
-  writePriceToFile(priceData: { timestamp: string; price: number }) {
-    const logEntry = `${priceData.timestamp} - 1 ETH = ${priceData.price} USD\n`;
-    try {
-      fs.appendFileSync(this.logFilePath, logEntry, 'utf8');
-      this.logger.log(`Price logged to file: ${logEntry.trim()}`);
-    } catch (error) {
-      this.logger.error(`Failed to write to log file: ${error.message}`);
-    }
-  }
+  // writePriceToFile(priceData: { timestamp: string; price: number }) {
+  //   const logEntry = `${priceData.timestamp} - 1 ETH = ${priceData.price} USD\n`;
+  //   try {
+  //     fs.appendFileSync(this.logFilePath, logEntry, 'utf8');
+  //     this.logger.log(`Price logged to file: ${logEntry.trim()}`);
+  //   } catch (error) {
+  //     this.logger.error(`Failed to write to log file: ${error.message}`);
+  //   }
+  // }
 
   async sendEmailNotification(priceData: { timestamp: string; price: number }) {
     try {
